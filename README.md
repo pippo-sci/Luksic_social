@@ -6,3 +6,5 @@ Trying to solve the question: Is he trying to lunch his politic plataform by tur
 Next steps: Content comparison with other public and politics figures twitter activity.
 
 Code was made in Rstudio Notebook, analysis was made in R with TwitteR, wordcloud, tm and RcolorBrew packages.
+
+view the node notebook in: http://htmlpreview.github.io/?https://github.com/anankeman/Luksic_social/blob/master/Luksic.nb.html
