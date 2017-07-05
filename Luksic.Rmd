@@ -1,0 +1,169 @@
+---
+title: "Luksic Twitter"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+ 
+
+```{r, include=FALSE}
+Sys.setlocale("LC_CTYPE", "spanish")
+library(twitteR)
+library(ROAuth)
+load("twitter authentication.Rdata")
+
+setup_twitter_oauth(consumer_key = 'Y8HRARBL9XwjbMzlMEqQZAoJE',
+                    consumer_secret = 'TkZKMzCfenCJHzWOKb5ZOTJ21mBfZNuHsj4o0cbkcS1M0cCHLW',
+                    access_token = '2387439188-lnaKeP9d2M0v7LGtUbhXzkEE8e1t7QWyBPyEzRM',
+                    access_secret = 	'SFmhwwBLbwCulylWbNuGmCHmL5XOzXYUbU8UDz2g65Mp1')
+
+
+```
+
+Andronico Luksic es el Hombrge más rico de Chile, salvo por su Madre. Últimamente la desigualdad estructural de Chile ha incrementado el odio contra los super millonarios de país. y Luksic ha decidido ser una figura pública, darse a sí mismo un rostro humano. pero ¿es sólo eso?
+
+Vamos a comparar si Lusik Trama algo. Veamos las pistas que deja en Twitter.
+
+¿Es el contenido de su twitter similar al de un político o a un otro personaje público?. Comparemos el contenidos de sus twitts con el de Copaño y Piñera.
+
+
+```{r}
+#twet<-searchTwitter("aluksicc", n=3200, lang="es")
+luksic<-userTimeline('aluksicc', n=3200, includeRts = F)
+pinera<-userTimeline('sebastianpinera', n=3200, includeRts = F)
+copano<-userTimeline('copano', n=3200, includeRts = F)
+
+dfluk<-twListToDF(luksic)
+dfpine<-twListToDF(pinera)
+dfcopa<-twListToDF(copano)
+
+luk<-dfluk$text
+pine<-dfpine$text
+copa<-dfcopa$text
+
+```
+```{r}
+cleanme = function(x){
+  # remueve retweets
+  x = gsub("(rt|via)((?:\\b\\W*@\\w+)+)", "", x)
+  # remueve @
+  x = gsub("@\\w+", "", x)
+  # remueve links
+  x = gsub("http[^[:space:]]*", "", x)
+  x = gsub("(https?:\\/\\/)\\w+(.\\w+)+(.\\w+) ", "", x)
+  x = gsub("www.\\w+(.*) ", "", x)
+  x = gsub("(https?:\\/\\/)\\w+(.\\w+)+(.\\w+)", "", x)
+  x = gsub("www.\\w+(.*)", "", x)
+  # caracteres especiales
+  x = gsub("<", "", x)
+  x = gsub(">", "", x)
+  # remueve simbolos de puntuación
+  x = gsub("[[:punct:]]", "", x)
+  # remove números
+  x = gsub("[[:digit:]]", "", x)
+  # remueve tabs
+  x = gsub("[ |\t]{2,}", "", x)
+  # remueve espacio en blanco al inicio
+  x = gsub("^ ", "", x)
+  # remueve espacio en blanco al final
+  x = gsub(" $", "", x)
+  x = tolower(x)
+  return(x)
+}
+
+luktx<-cleanme(luk)
+pinetx<-cleanme(pine)
+copatx<-cleanme(copa)
+
+luktx = paste(luktx, collapse=" ")
+pinetx = paste(pinetx, collapse=" ")
+copatx = paste(copatx, collapse=" ")
+df<-c(luktx,pinetx,copatx)
+```
+
+Tenemos la data de los tres.
+Veamos que contiene.
+
+```{r, include=F}
+library(tm)
+library(wordcloud)
+library(RColorBrewer)
+
+```
+
+
+```{r}
+
+corpus = Corpus(VectorSource(df))
+
+tdm = TermDocumentMatrix(
+  corpus,
+  control = list(
+    removePunctuation = TRUE,
+    stopwords = c(stopwords("spanish")),
+    removeNumbers = TRUE, tolower = F)
+)
+
+m = as.matrix(tdm)
+colnames(m) = c("Luksic",
+                "Piñera",
+                "Copano")
+
+```
+
+Pese a lo populares que son, no soy un gran fan de las nubes de palabras, es difícil visualizar información coherente entre palabras sin contexto, prefiero una red, pero en ese caso. Pero para una primera aproximación quizás sacamos algo de comparar nubes.
+
+Primero vemos esa nube de solo luksic
+
+```{r}
+
+word_freqs = sort(rowSums(data.frame(m[,1])), decreasing = TRUE) 
+dm = data.frame(word = names(word_freqs), freq = word_freqs)
+wordcloud(dm$word, dm$freq, random.order = FALSE, colors = brewer.pal(8, "Dark2"), scale = c(4,.2))
+
+```
+
+ Ahora, si comparemos contenidos
+```{r, warning=FALSE}
+comparison.cloud(m, random.order=FALSE,
+                    colors = c("forestgreen", "firebrick3",
+                               "gold2"),
+                    title.size=0.8, max.words=800,scale = c(4,.2))
+```
+
+
+Al parecer hay similitudes interesantes, vamos las palabras más compartidas. Entre Piñera y Luksic, más que con COpano.
+
+Palabras comunes entre Luksic y Piñera:
+
+```{r}
+commonality.cloud(m[,c(1,2)], random.order=FALSE,
+                     colors = brewer.pal(8, "Accent"),
+                     max.words=200)
+```
+
+Palabras comunes entre Luksic y Piñera: Luksic y Copano
+```{r}
+commonality.cloud(m[,c(1,3)], random.order=FALSE,
+                     colors = brewer.pal(8, "Accent"),
+                     max.words=200)
+```
+
+Presidente, libertad, futuro, votar, futuro, ayuda. Palabras tanto de Luksic y Piñera.
+Pero Copano y Luksic tienen otra palabras intersantes como ley, gente.
+
+y Si vemos las palabras comunes de los tres y las quitamos?
+
+```{r}
+commonality.cloud(m, random.order=FALSE,
+                     colors = brewer.pal(8, "Accent"),
+                     max.words=600)
+```
+ Violencia primarias,mundial y ley.
+ 
+Debiesemos también poder establecer alguna métrica de similitud. Como distancia vectorial por ejemplo:
+ 
+ (continuará)
+
+
